@@ -1,0 +1,53 @@
+# =============================================
+# Backend (Spring Boot / Gradle)
+# =============================================
+backend/build/
+backend/.gradle/
+backend/uploads/
+backend/out/
+backend/bin/
+
+# Gradle Wrapper JAR
+backend/gradle/wrapper/gradle-wrapper.jar
+
+# =============================================
+# Frontend (React / Node.js)
+# =============================================
+frontend/node_modules/
+frontend/build/
+
+# =============================================
+# Claude Code
+# =============================================
+.claude/
+
+# =============================================
+# IDE
+# =============================================
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+.factorypath
+*.launch
+.springBeans
+
+# =============================================
+# OS
+# =============================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =============================================
+# Env / Secrets
+# =============================================
+.env
+.env.*
+*.log
+backend/src/main/resources/application-local.yml
