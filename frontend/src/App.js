@@ -9,6 +9,9 @@ import ReceivedPage from './pages/ReceivedPage';
 import SentPage from './pages/SentPage';
 import UploadPage from './pages/UploadPage';
 import FileDetailPage from './pages/FileDetailPage';
+import NoticePage from './pages/NoticePage';
+import NoticeDetailPage from './pages/NoticeDetailPage';
+import NoticeWritePage from './pages/NoticeWritePage';
 
 function PrivateRoute({ children }) {
   const { isAuthenticated } = useAuth();
@@ -18,6 +21,13 @@ function PrivateRoute({ children }) {
 function PublicRoute({ children }) {
   const { isAuthenticated } = useAuth();
   return isAuthenticated ? <Navigate to="/" replace /> : children;
+}
+
+function AdminRoute({ children }) {
+  const { isAuthenticated, isAdmin } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAdmin) return <Navigate to="/" replace />;
+  return children;
 }
 
 export default function App() {
@@ -33,6 +43,10 @@ export default function App() {
             <Route path="sent" element={<SentPage />} />
             <Route path="upload" element={<UploadPage />} />
             <Route path="files/:id" element={<FileDetailPage />} />
+            <Route path="notices" element={<NoticePage />} />
+            <Route path="notices/:id" element={<NoticeDetailPage />} />
+            <Route path="notices/write" element={<AdminRoute><NoticeWritePage /></AdminRoute>} />
+            <Route path="notices/:id/edit" element={<AdminRoute><NoticeWritePage /></AdminRoute>} />
           </Route>
         </Routes>
       </BrowserRouter>

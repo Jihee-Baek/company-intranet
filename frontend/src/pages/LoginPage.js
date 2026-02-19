@@ -19,8 +19,8 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await login(form);
-      const { token, userId, employeeId, name, department } = res.data.data;
-      loginUser({ userId, employeeId, name, department }, token);
+      const { token, userId, employeeId, name, department, role } = res.data.data;
+      loginUser({ userId, employeeId, name, department, role }, token);
       toast.success(`${name}님, 환영합니다!`);
       navigate('/');
     } catch (err) {

@@ -5,38 +5,29 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users")
+@Table(name = "notices")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 @Builder
-public class User {
-
-    public enum Role { USER, ADMIN }
+public class Notice {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "employee_id", nullable = false, unique = true, length = 20)
-    private String employeeId;
+    @Column(nullable = false, length = 200)
+    private String title;
 
-    @Column(nullable = false, length = 50)
-    private String name;
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String content;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "department_id")
-    private Department department;
+    @JoinColumn(name = "author_id", nullable = false)
+    private User author;
 
-    @Column(length = 100)
-    private String email;
-
-    @Column(nullable = false)
-    private String password;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 10)
+    @Column(name = "is_pinned", nullable = false)
     @Builder.Default
-    private Role role = Role.USER;
+    private boolean isPinned = false;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -53,9 +44,5 @@ public class User {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
-    }
-
-    public String getDepartmentName() {
-        return department != null ? department.getName() : null;
     }
 }

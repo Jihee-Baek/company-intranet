@@ -37,6 +37,10 @@ export default function Layout() {
             <span>⬆️</span>
             파일 업로드
           </NavLink>
+          <NavLink to="/notices" className={({ isActive }) => isActive ? 'active' : ''}>
+            <span>📢</span>
+            공지사항
+          </NavLink>
         </nav>
         <div className="sidebar-user">
           <div className="user-name">{user?.name}</div>

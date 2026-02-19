@@ -22,6 +22,7 @@ CREATE TABLE users (
     department_id BIGINT COMMENT '부서',
     email VARCHAR(100) COMMENT '이메일',
     password VARCHAR(255) NOT NULL COMMENT '암호화된 비밀번호',
+    role ENUM('USER','ADMIN') NOT NULL DEFAULT 'USER' COMMENT '역할',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (department_id) REFERENCES departments(id),
@@ -74,8 +75,27 @@ CREATE TABLE download_logs (
     INDEX idx_downloaded_at (downloaded_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 공지사항 테이블
+CREATE TABLE notices (
+    id         BIGINT       AUTO_INCREMENT PRIMARY KEY,
+    title      VARCHAR(200) NOT NULL COMMENT '제목',
+    content    TEXT         NOT NULL COMMENT '내용',
+    author_id  BIGINT       NOT NULL COMMENT '작성자',
+    is_pinned  BOOLEAN      NOT NULL DEFAULT FALSE COMMENT '상단고정',
+    created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (author_id) REFERENCES users(id),
+    INDEX idx_author     (author_id),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- =============================================
 -- 마이그레이션: 기존 DB에 expires_at 추가
 -- =============================================
 -- ALTER TABLE files ADD COLUMN expires_at DATETIME COMMENT '만료 시간';
 -- UPDATE files SET expires_at = DATE_ADD(created_at, INTERVAL 30 DAY);
+
+-- =============================================
+-- 마이그레이션: 기존 DB에 role 컬럼 추가
+-- =============================================
+-- ALTER TABLE users ADD COLUMN role ENUM('USER','ADMIN') NOT NULL DEFAULT 'USER' COMMENT '역할';
