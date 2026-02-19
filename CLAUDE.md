@@ -53,7 +53,7 @@ docker-compose up
 
 ### Database Schema
 
-Five tables: `departments`, `users` (login key is `employee_id`), `files` (`expires_at` auto-set to +30 days by DB trigger), `file_recipients` (tracks `is_downloaded` per recipient), `download_logs` (immutable audit with IP).
+Six tables: `departments`, `users` (login key is `employee_id`), `files` (`expires_at` auto-set to +30 days by DB trigger), `file_recipients` (tracks `is_downloaded` per recipient), `download_logs` (immutable audit with IP), `notices` (공지사항, pinned + created_at ordering).
 
 ### Required Environment Variables
 
@@ -67,5 +67,22 @@ Five tables: `departments`, `users` (login key is `employee_id`), `files` (`expi
 ### Key Patterns
 
 - **Paginated file lists** (`/received`, `/sent`): support `keyword` (LIKE on filename + sender), `sortBy` (whitelist: `createdAt`, `originalName`, `fileSize`), `sortDir`, `page`, `size`.
-- **Access control:** Both uploader and all designated recipients can download/preview. No role-based access beyond this.
+- **Role-based access:** `users.role` is `ENUM('USER','ADMIN')` defaulting to `USER`. Role is returned in the login response and stored in `localStorage` via `AuthContext`. `isAdmin` is derived as `user?.role === 'ADMIN'`. Spring Security enforces ADMIN-only write access to `/api/notices` via `hasRole("ADMIN")` in `SecurityConfig`.
+- **Notice board:** ADMIN can create/edit/delete notices (`isPinned` supported). All authenticated users can read. Frontend uses `AdminRoute` guard for write pages.
 - **CORS:** Restricted to `http://localhost:3000` in development config (`SecurityConfig.java`).
+
+### Migrations (existing DB)
+
+When adding new schema to an existing database, run these manually (also commented in `schema.sql`):
+
+```sql
+-- role 컬럼 추가
+ALTER TABLE users ADD COLUMN role ENUM('USER','ADMIN') NOT NULL DEFAULT 'USER' COMMENT '역할';
+
+-- notices 테이블 생성 (schema.sql 참고)
+
+-- 관리자 지정 예시
+UPDATE users SET role = 'ADMIN' WHERE employee_id = 'EMP001';
+```
+
+> After granting ADMIN role, the user must **log out and log back in** to refresh the `role` stored in `localStorage`.
