@@ -59,8 +59,9 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      # 4. 컨테이너 생성 시 변환된 schema.sql을 자동으로 밀어 넣는 경로 유지
+      # 4. 컨테이너 생성 시 sql을 자동으로 밀어 넣는 경로 추가
       - ./backend/src/main/resources/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./backend/src/main/resources/db/data.sql:/docker-entrypoint-initdb.d/02-schema.sql
     # 5. PostgreSQL용 헬스체크 명령어로 변경
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
