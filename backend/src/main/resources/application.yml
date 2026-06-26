@@ -6,6 +6,11 @@ server:
       max-request-size: 100MB
 
 spring:
+  sql:
+    init:
+      mode: always
+      # schema-locations: classpath:db/schema.sql
+      data-locations: classpath:db/data.sql
   profiles:
     active: local
   datasource:
@@ -18,6 +23,7 @@ spring:
     username: ${DB_USERNAME:filehub_0e2i_user}
     password: ${DB_PASSWORD}
   jpa:
+    defer-datasource-initialization: true
     hibernate:
       ddl-auto: validate
     show-sql: false
