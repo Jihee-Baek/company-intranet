@@ -105,27 +105,41 @@
 -- Company FileHub Database Schema (PostgreSQL)
 -- =============================================
 
+-- 기존 테이블 및 타입 초기화 (외래 키 의존성 고려하여 CASCADE 적용)
+DROP TABLE IF EXISTS download_logs CASCADE;
+DROP TABLE IF EXISTS file_recipients CASCADE;
+DROP TABLE IF EXISTS files CASCADE;
+DROP TABLE IF EXISTS notices CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS departments CASCADE;
+
+DROP TYPE IF EXISTS user_role;
+
 -- 1. ENUM 타입 정의 (기존 MySQL ENUM 매핑)
 CREATE TYPE user_role AS ENUM ('USER', 'ADMIN');
 
 -- 2. 부서 테이블
 CREATE TABLE departments (
-    id   BIGSERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE
+    id bigint GENERATED ALWAYS AS IDENTITY,
+    name varchar(100) NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_departments_name UNIQUE (name)
 );
 
 -- 3. 사용자 테이블
 CREATE TABLE users (
-    id            BIGSERIAL PRIMARY KEY,
-    employee_id   VARCHAR(20)  NOT NULL UNIQUE,
-    name          VARCHAR(50)  NOT NULL,
-    department_id BIGINT,
-    email         VARCHAR(100),
-    password      VARCHAR(255) NOT NULL,
-    role          user_role    NOT NULL DEFAULT 'USER',
-    created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (department_id) REFERENCES departments(id)
+    id bigint GENERATED ALWAYS AS IDENTITY,
+    employee_id varchar(20) NOT NULL,
+    name varchar(50) NOT NULL,
+    email varchar(100) DEFAULT NULL,
+    password varchar(255) NOT NULL,
+    created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    department_id bigint DEFAULT NULL,
+    role user_role NOT NULL DEFAULT 'USER',
+    PRIMARY KEY (id),
+    CONSTRAINT uk_users_employee_id UNIQUE (employee_id),
+    CONSTRAINT fk_users_department FOREIGN KEY (department_id) REFERENCES departments (id)
 );
 
 -- 코멘트 등록 (PostgreSQL 방식)
@@ -136,68 +150,86 @@ COMMENT ON COLUMN users.email IS '이메일';
 COMMENT ON COLUMN users.password IS '암호화된 비밀번호';
 COMMENT ON COLUMN users.role IS '역할';
 
--- 인덱스 생성
-CREATE INDEX idx_users_employee_id ON users(employee_id);
-CREATE INDEX idx_users_name ON users(name);
+-- users 테이블 인덱스
+CREATE INDEX idx_users_employee_id ON users (employee_id);
+CREATE INDEX idx_users_name ON users (name);
+CREATE INDEX idx_users_department_id ON users (department_id);
 
 
 -- 4. 파일 테이블
 CREATE TABLE files (
-    id            BIGSERIAL PRIMARY KEY,
-    original_name VARCHAR(255) NOT NULL,
-    stored_name   VARCHAR(255) NOT NULL,
-    file_path     VARCHAR(512) NOT NULL,
-    file_size     BIGINT       NOT NULL,
-    extension     VARCHAR(20),
-    uploader_id   BIGINT       NOT NULL,
-    download_count INT         NOT NULL DEFAULT 0,
-    is_deleted    BOOLEAN      NOT NULL DEFAULT FALSE,
-    created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    expires_at    TIMESTAMP,
-    FOREIGN KEY (uploader_id) REFERENCES users(id)
+    id bigint GENERATED ALWAYS AS IDENTITY,
+    original_name varchar(500) NOT NULL,
+    stored_name varchar(500) NOT NULL,
+    file_path varchar(1000) NOT NULL,
+    file_size bigint NOT NULL,
+    file_type varchar(200) DEFAULT NULL,
+    memo text DEFAULT NULL,
+    uploader_id bigint NOT NULL,
+    created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expires_at timestamp DEFAULT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_files_uploader FOREIGN KEY (uploader_id) REFERENCES users (id)
 );
 
 COMMENT ON COLUMN files.original_name IS '원본 파일명';
 COMMENT ON COLUMN files.stored_name IS '저장된 파일명';
 COMMENT ON COLUMN files.file_path IS '서버 내 저장 경로';
 COMMENT ON COLUMN files.file_size IS '파일 크기(Byte)';
-COMMENT ON COLUMN files.extension IS '확장자';
 COMMENT ON COLUMN files.uploader_id IS '업로더';
-COMMENT ON COLUMN files.download_count IS '다운로드 횟수';
-COMMENT ON COLUMN files.is_deleted IS '삭제 여부';
 COMMENT ON COLUMN files.expires_at IS '만료 시간';
 
-CREATE INDEX idx_files_uploader ON files(uploader_id);
-CREATE INDEX idx_files_created_at ON files(created_at);
-CREATE INDEX idx_files_expires_at ON files(expires_at);
+-- files 테이블 인덱스
+CREATE INDEX idx_files_uploader ON files (uploader_id);
+CREATE INDEX idx_files_created_at ON files (created_at);
 
 
 -- 5. 다운로드 이력 테이블
 CREATE TABLE download_logs (
-    id            BIGSERIAL PRIMARY KEY,
-    file_id       BIGINT    NOT NULL,
-    downloader_id BIGINT,
-    downloaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    ip_address    VARCHAR(45),
-    FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE,
-    FOREIGN KEY (downloader_id) REFERENCES users(id)
+    id bigint GENERATED ALWAYS AS IDENTITY,
+    file_id bigint NOT NULL,
+    downloader_id bigint NOT NULL,
+    downloaded_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ip_address varchar(45) DEFAULT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_download_logs_file FOREIGN KEY (file_id) REFERENCES files (id) ON DELETE CASCADE,
+    CONSTRAINT fk_download_logs_downloader FOREIGN KEY (downloader_id) REFERENCES users (id)
 );
 
-CREATE INDEX idx_download_logs_file_id ON download_logs(file_id);
-CREATE INDEX idx_download_logs_downloader ON download_logs(downloader_id);
-CREATE INDEX idx_download_logs_downloaded_at ON download_logs(downloaded_at);
+-- download_logs 테이블 인덱스
+CREATE INDEX idx_download_logs_file_id ON download_logs (file_id);
+CREATE INDEX idx_download_logs_downloader ON download_logs (downloader_id);
+CREATE INDEX idx_download_logs_downloaded_at ON download_logs (downloaded_at);
+
+-- 6. file_recipients 테이블 생성
+CREATE TABLE file_recipients (
+    id bigint GENERATED ALWAYS AS IDENTITY,
+    file_id bigint NOT NULL,
+    recipient_id bigint NOT NULL,
+    is_downloaded boolean NOT NULL DEFAULT FALSE,
+    first_downloaded_at timestamp DEFAULT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_file_recipient UNIQUE (file_id, recipient_id),
+    CONSTRAINT fk_file_recipients_file FOREIGN KEY (file_id) REFERENCES files (id) ON DELETE CASCADE,
+    CONSTRAINT fk_file_recipients_recipient FOREIGN KEY (recipient_id) REFERENCES users (id)
+);
+
+-- file_recipients 테이블 인덱스
+CREATE INDEX idx_file_recipients_recipient ON file_recipients (recipient_id);
+CREATE INDEX idx_file_recipients_downloaded ON file_recipients (is_downloaded);
 
 
--- 6. 공지사항 테이블
+-- 7. 공지사항 테이블
 CREATE TABLE notices (
-    id         BIGSERIAL    PRIMARY KEY,
-    title      VARCHAR(200) NOT NULL,
-    content    TEXT         NOT NULL,
-    author_id  BIGINT       NOT NULL,
-    is_pinned  BOOLEAN      NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (author_id) REFERENCES users(id)
+    id bigint GENERATED ALWAYS AS IDENTITY,
+    title varchar(200) NOT NULL,
+    content text NOT NULL,
+    author_id bigint NOT NULL,
+    is_pinned boolean NOT NULL DEFAULT FALSE,
+    created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_notices_author FOREIGN KEY (author_id) REFERENCES users (id)
 );
 
 COMMENT ON COLUMN notices.title IS '제목';
@@ -205,12 +237,13 @@ COMMENT ON COLUMN notices.content IS '내용';
 COMMENT ON COLUMN notices.author_id IS '작성자';
 COMMENT ON COLUMN notices.is_pinned IS '상단고정';
 
-CREATE INDEX idx_notices_author ON notices(author_id);
-CREATE INDEX idx_notices_created_at ON notices(created_at);
+-- notices 테이블 인덱스
+CREATE INDEX idx_notices_author ON notices (author_id);
+CREATE INDEX idx_notices_created_at ON notices (created_at);
 
 
 -- =============================================
--- 7. 자동으로 updated_at을 갱신하기 위한 트리거 설정
+-- 8. 자동으로 updated_at을 갱신하기 위한 트리거 설정
 -- =============================================
 CREATE OR REPLACE FUNCTION update_modified_column()
 RETURNS TRIGGER AS $$
