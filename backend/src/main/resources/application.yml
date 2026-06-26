@@ -9,10 +9,14 @@ spring:
   profiles:
     active: local
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/filehub?useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true}
-    username: ${DB_USERNAME:root}
+    # url: ${DB_URL:jdbc:mysql://localhost:3306/filehub?useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true}
+    # username: ${DB_USERNAME:root}
+    # password: ${DB_PASSWORD}
+    # driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/filehub}
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME:filehub_0e2i_user}
     password: ${DB_PASSWORD}
-    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
       ddl-auto: validate
@@ -20,7 +24,8 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.MySQLDialect
+        # dialect: org.hibernate.dialect.MySQLDialect
+        dialect: org.hibernate.dialect.PostgreSQLDialect
 
 app:
   jwt:

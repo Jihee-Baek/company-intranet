@@ -1,18 +1,69 @@
+# services:
+#   db:
+#     image: mysql:8.0
+#     environment:
+#       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-1234}
+#       MYSQL_DATABASE: filehub
+#       MYSQL_USER: ${MYSQL_USER:-filehub}
+#       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-filehub1234}
+#     ports:
+#       - "3306:3306"
+#     volumes:
+#       - mysql_data:/var/lib/mysql
+#       - ./backend/src/main/resources/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+#     healthcheck:
+#       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+#       interval: 10s
+#       timeout: 5s
+#       retries: 5
+
+#   backend:
+#     build: ./backend
+#     environment:
+#       MYSQL_USER: root
+#       MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-1234}
+#     ports:
+#       - "8080:8080"
+#     volumes:
+#       - upload_data:/app/uploads
+#     depends_on:
+#       db:
+#         condition: service_healthy
+
+#   frontend:
+#     build: ./frontend
+#     ports:
+#       - "80:80"
+#     depends_on:
+#       - backend
+
+# volumes:
+#   mysql_data:
+#   upload_data:
+
+
+
+version: '3.8'
+
 services:
   db:
-    image: mysql:8.0
+    # 1. PostgreSQL 16 공식 이미지로 변경 (Render 18 버전과 호환 가능)
+    image: postgres:16-alpine
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-1234}
-      MYSQL_DATABASE: filehub
-      MYSQL_USER: ${MYSQL_USER:-filehub}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-filehub1234}
+      # 2. PostgreSQL용 환경 변수 설정
+      POSTGRES_DB: filehub
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-1234}
     ports:
-      - "3306:3306"
+      # 3. PostgreSQL 기본 포트(5432) 매핑
+      - "5432:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
+      # 4. 컨테이너 생성 시 변환된 schema.sql을 자동으로 밀어 넣는 경로 유지
       - ./backend/src/main/resources/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    # 5. PostgreSQL용 헬스체크 명령어로 변경
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -20,8 +71,9 @@ services:
   backend:
     build: ./backend
     environment:
-      MYSQL_USER: root
-      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-1234}
+      # 6. 백엔드가 컨테이너 내부 DB와 통신할 때 활용할 환경 변수 매핑
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-1234}
     ports:
       - "8080:8080"
     volumes:
@@ -38,5 +90,5 @@ services:
       - backend
 
 volumes:
-  mysql_data:
+  postgres_data: # 볼륨 이름도 직관적으로 변경
   upload_data:
