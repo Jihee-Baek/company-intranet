@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+let apiBaseUrl = process.env.REACT_APP_API_URL || '/api';
+if (apiBaseUrl !== '/api' && !apiBaseUrl.endsWith('/api')) {
+  apiBaseUrl = apiBaseUrl.endsWith('/') ? `${apiBaseUrl}api` : `${apiBaseUrl}/api`;
+}
+
 const client = axios.create({
-  baseURL: '/api',
+  baseURL: apiBaseUrl,
   timeout: 30000,
 });
 
