@@ -7,11 +7,13 @@ import com.company.filehub.entity.User;
 import com.company.filehub.repository.NoticeRepository;
 import com.company.filehub.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NoticeService {
@@ -45,7 +47,9 @@ public class NoticeService {
                 .isPinned(request.isPinned())
                 .build();
 
-        return NoticeResponse.from(noticeRepository.save(notice));
+        Notice savedNotice = noticeRepository.save(notice);
+        log.info("Successfully created notice ID: {} by author ID: {}", savedNotice.getId(), authorId);
+        return NoticeResponse.from(savedNotice);
     }
 
     @Transactional
@@ -57,14 +61,18 @@ public class NoticeService {
         notice.setContent(request.getContent());
         notice.setPinned(request.isPinned());
 
-        return NoticeResponse.from(noticeRepository.save(notice));
+        Notice updatedNotice = noticeRepository.save(notice);
+        log.info("Successfully updated notice ID: {}", updatedNotice.getId());
+        return NoticeResponse.from(updatedNotice);
     }
 
     @Transactional
     public void deleteNotice(Long id) {
         if (!noticeRepository.existsById(id)) {
+            log.warn("Delete notice failed: notice ID {} does not exist", id);
             throw new IllegalArgumentException("존재하지 않는 공지사항입니다");
         }
         noticeRepository.deleteById(id);
+        log.info("Successfully deleted notice ID: {}", id);
     }
 }
