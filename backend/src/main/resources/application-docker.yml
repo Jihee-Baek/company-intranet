@@ -11,7 +11,7 @@
 spring:
   datasource:
     # 1. PostgreSQL 호스트 및 기본 포트(5432) 형태로 주호스트 주소 변경
-    url: jdbc:postgresql://db:5432/filehub
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://db:5432/filehub}
     # 2. PostgreSQL용 드라이버 클래스 이름 지정
     driver-class-name: org.postgresql.Driver
     # 3. 환경변수 플레이스홀더 이름도 가독성을 위해 POSTGRES로 변경 (Render 환경변수명과 맞춰주세요)
